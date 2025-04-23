@@ -4,32 +4,29 @@ import torch
 from transformers import pipeline
 import streamlit as st
 import time
-from config import MODEL_NAME
+from config import MODEL1_NAME, MODEL2_NAME
 from huggingface_hub import login
 
 # モデルをキャッシュして再利用
 @st.cache_resource
-def load_model():
+def load_models():
     """LLMモデルをロードする"""
     try:
-
-        # アクセストークンを保存
-        hf_token = st.secrets["huggingface"]["token"]
-        
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        st.info(f"Using device: {device}") # 使用デバイスを表示
-        pipe = pipeline(
-            "text-generation",
-            model=MODEL_NAME,
-            model_kwargs={"torch_dtype": torch.bfloat16},
-            device=device
-        )
-        st.success(f"モデル '{MODEL_NAME}' の読み込みに成功しました。")
-        return pipe
+        st.info(f"Using device: {device}")
+        
+        # モデル1
+        pipe1 = pipeline("text-generation", model=MODEL1_NAME, model_kwargs={"torch_dtype": torch.bfloat16}, device=device)
+        st.success(f"モデル '{MODEL1_NAME}' の読み込みに成功しました。")
+        
+        # モデル2
+        pipe2 = pipeline("text-generation", model=MODEL2_NAME, model_kwargs={"torch_dtype": torch.bfloat16}, device=device)
+        st.success(f"モデル '{MODEL2_NAME}' の読み込みに成功しました。")
+        
+        return pipe1, pipe2
     except Exception as e:
-        st.error(f"モデル '{MODEL_NAME}' の読み込みに失敗しました: {e}")
-        st.error("GPUメモリ不足の可能性があります。不要なプロセスを終了するか、より小さいモデルの使用を検討してください。")
-        return None
+        st.error(f"モデルの読み込みに失敗しました: {e}")
+        return None, None
 
 def generate_response(pipe, user_question):
     """LLMを使用して質問に対する回答を生成する"""

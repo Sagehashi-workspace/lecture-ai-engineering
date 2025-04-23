@@ -98,7 +98,7 @@ def calculate_metrics(answer, correct_answer):
 def get_metrics_descriptions():
     """評価指標の説明を返す"""
     return {
-        "正確性スコア (is_correct)": "回答の正確さを3段階で評価: 1.0 (正確), 0.5 (部分的に正確), 0.0 (不正確)",
+        "正確性スコア (is_correct)": "回答の正確さを0~1の範囲で評価。0に近いほど不正確で、1に近いほど正確",
         "応答時間 (response_time)": "質問を投げてから回答を得るまでの時間（秒）。モデルの効率性を表す",
         "BLEU スコア (bleu_score)": "機械翻訳評価指標で、正解と回答のn-gramの一致度を測定 (0〜1の値、高いほど類似)",
         "類似度スコア (similarity_score)": "TF-IDFベクトルのコサイン類似度による、正解と回答の意味的な類似性 (0〜1の値)",

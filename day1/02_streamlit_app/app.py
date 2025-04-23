@@ -7,7 +7,7 @@ import metrics              # 評価指標モジュール
 import data                 # データモジュール
 import torch
 from transformers import pipeline
-from config import MODEL_NAME
+from config import MODEL1_NAME, MODEL2_NAME
 from huggingface_hub import HfFolder
 
 # --- アプリケーション設定 ---
@@ -26,29 +26,50 @@ data.ensure_initial_data()
 # LLMモデルのロード（キャッシュを利用）
 # モデルをキャッシュして再利用
 @st.cache_resource
-def load_model():
+def load_models():
     """LLMモデルをロードする"""
     try:
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        st.info(f"Using device: {device}") # 使用デバイスを表示
-        pipe = pipeline(
-            "text-generation",
-            model=MODEL_NAME,
-            model_kwargs={"torch_dtype": torch.bfloat16},
-            device=device
-        )
-        st.success(f"モデル '{MODEL_NAME}' の読み込みに成功しました。")
-        return pipe
+        st.info(f"Using device: {device}")
+        
+        # モデル1
+        pipe1 = pipeline("text-generation", model=MODEL1_NAME, model_kwargs={"torch_dtype": torch.bfloat16}, device=device)
+        st.success(f"モデル '{MODEL1_NAME}' の読み込みに成功しました。")
+        
+        # モデル2
+        pipe2 = pipeline("text-generation", model=MODEL2_NAME, model_kwargs={"torch_dtype": torch.bfloat16}, device=device)
+        st.success(f"モデル '{MODEL2_NAME}' の読み込みに成功しました。")
+        
+        return pipe1, pipe2
     except Exception as e:
-        st.error(f"モデル '{MODEL_NAME}' の読み込みに失敗しました: {e}")
-        st.error("GPUメモリ不足の可能性があります。不要なプロセスを終了するか、より小さいモデルの使用を検討してください。")
-        return None
-pipe = llm.load_model()
+        st.error(f"モデルの読み込みに失敗しました: {e}")
+        return None, None
+# 両方のモデルをロード
+pipe1, pipe2 = llm.load_models()
 
 # --- Streamlit アプリケーション ---
-st.title("🤖 Gemma 2 Chatbot with Feedback")
+st.title("🤖 Gemma Chatbot with Feedback")
 st.write("Gemmaモデルを使用したチャットボットです。回答に対してフィードバックを行えます。")
+st.write("左のサイドバーから使用するモデルを選択してください。使用できるモデルは以下の2つです。")
+st.code("google/gemma-2-2b-jpn-it")
+st.write("デフォルトで選択。日本語テキスト向けに微調整されたGemma 2 2Bモデルです。Gemma 2における英語のみのクエリと同等のパフォーマンスで日本語をサポートします。")
+st.code("google/gemma-3-12b-it")
+st.write("gemmaの最新モデルです。128K の大規模なコンテキストウィンドウと、140 を超える言語での多言語サポートを備え、以前のバージョンよりも多くのサイズで利用できます。")
 st.markdown("---")
+
+# --- モデル選択 ---
+model_options = [
+    "google/gemma-2-2b-jpn-it",  # 既存モデル
+    "google/gemma-3-12b-it"      # 新しいモデル
+]
+
+selected_model = st.sidebar.selectbox("使用するモデルを選択", model_options)
+
+# --- 使用するモデルを選択 ---
+if selected_model == "google/gemma-2-2b-jpn-it":
+    pipe = pipe1
+elif selected_model == "google/gemma-3-12b-it":
+    pipe = pipe2
 
 # --- サイドバー ---
 st.sidebar.title("ナビゲーション")
@@ -78,4 +99,4 @@ elif st.session_state.page == "サンプルデータ管理":
 
 # --- フッターなど（任意） ---
 st.sidebar.markdown("---")
-st.sidebar.info("開発者: [Your Name]")
+st.sidebar.info("開発者: Sagehashi")
