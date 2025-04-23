@@ -61,16 +61,34 @@ def display_feedback_form():
     """フィードバック入力フォームを表示する"""
     with st.form("feedback_form"):
         st.subheader("フィードバック")
-        feedback_options = ["正確", "部分的に正確", "不正確"]
-        # label_visibility='collapsed' でラベルを隠す
-        feedback = st.radio("回答の評価", feedback_options, key="feedback_radio", label_visibility='collapsed', horizontal=True)
+        # feedback_options = ["正確", "部分的に正確", "不正確"]
+        # # label_visibility='collapsed' でラベルを隠す
+        # feedback = st.radio("回答の評価", feedback_options, key="feedback_radio", label_visibility='collapsed', horizontal=True)
+        # スライダーラベル表示
+        col1, col2, col3 = st.columns([1, 6, 1])
+        with col1:
+            st.markdown("**不正確**")
+        with col3:
+            st.markdown("<div style='text-align: right;'>**正確**</div>", unsafe_allow_html=True)
+
+        is_correct = st.slider(
+            "", min_value=0.0, max_value=1.0, value=0.5, step=0.1,
+            key="feedback_slider"
+        )
         correct_answer = st.text_area("より正確な回答（任意）", key="correct_answer_input", height=100)
         feedback_comment = st.text_area("コメント（任意）", key="feedback_comment_input", height=100)
         submitted = st.form_submit_button("フィードバックを送信")
         if submitted:
             # フィードバックをデータベースに保存
-            is_correct = 1.0 if feedback == "正確" else (0.5 if feedback == "部分的に正確" else 0.0)
+            # is_correct = 1.0 if feedback == "正確" else (0.5 if feedback == "部分的に正確" else 0.0)
             # コメントがない場合でも '正確' などの評価はfeedbackに含まれるようにする
+            # 数値に応じたテキストラベル分類
+            if is_correct == 1.0:
+                feedback = "正確"
+            elif is_correct == 0.0:
+                feedback = "不正確"
+            else:
+                feedback = "部分的に正確"
             combined_feedback = f"{feedback}"
             if feedback_comment:
                 combined_feedback += f": {feedback_comment}"
@@ -115,7 +133,7 @@ def display_history_list(history_df):
     filter_options = {
         "すべて表示": None,
         "正確なもののみ": 1.0,
-        "部分的に正確なもののみ": 0.5,
+        "部分的に正確なもののみ": (0.1, 0.9),
         "不正確なもののみ": 0.0
     }
     display_option = st.radio(
@@ -126,11 +144,17 @@ def display_history_list(history_df):
     )
 
     filter_value = filter_options[display_option]
-    if filter_value is not None:
-        # is_correctがNaNの場合を考慮
-        filtered_df = history_df[history_df["is_correct"].notna() & (history_df["is_correct"] == filter_value)]
+    # is_correctがNaNでない行に限定
+    filtered_df = history_df[history_df["is_correct"].notna()]
+    if filter_value is None:
+        pass  # 全て表示
+    elif isinstance(filter_value, tuple):
+        min_val, max_val = filter_value
+        filtered_df = filtered_df[
+            (filtered_df["is_correct"] >= min_val) & (filtered_df["is_correct"] <= max_val)
+        ]
     else:
-        filtered_df = history_df
+        filtered_df = filtered_df[filtered_df["is_correct"] == filter_value]
 
     if filtered_df.empty:
         st.info("選択した条件に一致する履歴はありません。")
@@ -181,16 +205,22 @@ def display_metrics_analysis(history_df):
         st.warning("分析可能な評価データがありません。")
         return
 
-    accuracy_labels = {1.0: '正確', 0.5: '部分的に正確', 0.0: '不正確'}
-    analysis_df['正確性'] = analysis_df['is_correct'].map(accuracy_labels)
-
+    #accuracy_labels = {1.0: '正確', 0.5: '部分的に正確', 0.0: '不正確'}
+    #analysis_df['正確性'] = analysis_df['is_correct'].map(accuracy_labels)
+    analysis_df['正確性'] = analysis_df['is_correct']
     # 正確性の分布
     st.write("##### 正確性の分布")
-    accuracy_counts = analysis_df['正確性'].value_counts()
-    if not accuracy_counts.empty:
-        st.bar_chart(accuracy_counts)
-    else:
-        st.info("正確性データがありません。")
+    # accuracy_counts = analysis_df['正確性'].value_counts()
+    # if not accuracy_counts.empty:
+    #     st.bar_chart(accuracy_counts)
+    # else:
+    #     st.info("正確性データがありません。")
+    bins = [round(i * 0.1, 1) for i in range(11)] 
+    score_counts = analysis_df['is_correct'].value_counts().reindex(bins, fill_value=0).sort_index()
+
+    # データ表示
+    st.bar_chart(score_counts)
+    st.dataframe(score_counts.reset_index().rename(columns={'index': 'スコア', 'is_correct': '件数'}))
 
     # 応答時間と他の指標の関係
     st.write("##### 応答時間とその他の指標の関係")
