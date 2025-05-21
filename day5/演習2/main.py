@@ -268,18 +268,23 @@ def test_model_regression():
     current_model = ModelTester.train_model(X_train, y_train)
     current_metrics = ModelTester.evaluate_model(current_model, X_test, y_test)
 
-    # ベースラインモデルのパス（既に保存されている前提）
+    # ベースラインモデルのパス
     baseline_model_path = os.path.join(
         os.path.dirname(__file__), "models", "titanic_model.pkl"
     )
-
     assert os.path.exists(
         baseline_model_path
     ), f"ベースラインモデルが存在しません: {baseline_model_path}"
 
-    # ベースラインモデルのロードと評価
+    # ベースラインモデルのロード・評価
     baseline_model = ModelTester.load_model(path=baseline_model_path)
     baseline_metrics = ModelTester.evaluate_model(baseline_model, X_test, y_test)
+
+    # 精度の出力
+    print("\n=== モデル比較 ===")
+    print(f"ベースラインモデル精度 : {baseline_metrics['accuracy']:.4f}")
+    print(f"現在のモデル精度       : {current_metrics['accuracy']:.4f}")
+    print("===================")
 
     # 精度差を比較
     accuracy_drop = baseline_metrics["accuracy"] - current_metrics["accuracy"]
