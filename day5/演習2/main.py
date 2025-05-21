@@ -253,6 +253,7 @@ def test_model_performance():
         metrics["inference_time"] < 1.0
     ), f"推論時間が長すぎます: {metrics['inference_time']}秒"
 
+
 def test_model_regression():
     """過去のベースラインモデルと現在のモデルの性能を比較する"""
 
@@ -268,11 +269,13 @@ def test_model_regression():
     current_metrics = ModelTester.evaluate_model(current_model, X_test, y_test)
 
     # ベースラインモデルのパス（既に保存されている前提）
-    baseline_model_path = os.path.join(os.path.dirname(__file__), "models", "titanic_model.pkl")
-
-    assert os.path.exists(baseline_model_path), (
-        f"ベースラインモデルが存在しません: {baseline_model_path}"
+    baseline_model_path = os.path.join(
+        os.path.dirname(__file__), "models", "titanic_model.pkl"
     )
+
+    assert os.path.exists(
+        baseline_model_path
+    ), f"ベースラインモデルが存在しません: {baseline_model_path}"
 
     # ベースラインモデルのロードと評価
     baseline_model = ModelTester.load_model(path=baseline_model_path)
@@ -284,6 +287,7 @@ def test_model_regression():
         f"現在のモデルの精度がベースラインより劣っています。差分: {accuracy_drop:.4f} "
         f"(baseline={baseline_metrics['accuracy']:.4f}, current={current_metrics['accuracy']:.4f})"
     )
+
 
 if __name__ == "__main__":
     # データロード
