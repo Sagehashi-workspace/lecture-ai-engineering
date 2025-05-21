@@ -241,6 +241,8 @@ def test_model_performance():
     # 評価
     metrics = ModelTester.evaluate_model(model, X_test, y_test)
 
+    print(f"精度: {metrics['accuracy']:.4f}")
+    print(f"推論時間: {metrics['inference_time']:.4f}秒")
     # ベースラインとの比較
     assert ModelTester.compare_with_baseline(
         metrics, 0.75
@@ -250,6 +252,41 @@ def test_model_performance():
     assert (
         metrics["inference_time"] < 1.0
     ), f"推論時間が長すぎます: {metrics['inference_time']}秒"
+
+
+def test_model_regression():
+    """過去のベースラインモデルと現在のモデルの性能を比較する"""
+
+    # データ準備
+    data = DataLoader.load_titanic_data()
+    X, y = DataLoader.preprocess_titanic_data(data)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    # 現在のモデルを学習・評価
+    current_model = ModelTester.train_model(X_train, y_train)
+    current_metrics = ModelTester.evaluate_model(current_model, X_test, y_test)
+
+    # ベースラインモデルのパス（既に保存されている前提）
+    baseline_model_path = os.path.join(
+        os.path.dirname(__file__), "models", "titanic_model.pkl"
+    )
+
+    assert os.path.exists(
+        baseline_model_path
+    ), f"ベースラインモデルが存在しません: {baseline_model_path}"
+
+    # ベースラインモデルのロードと評価
+    baseline_model = ModelTester.load_model(path=baseline_model_path)
+    baseline_metrics = ModelTester.evaluate_model(baseline_model, X_test, y_test)
+
+    # 精度差を比較
+    accuracy_drop = baseline_metrics["accuracy"] - current_metrics["accuracy"]
+    assert accuracy_drop < 0.02, (
+        f"現在のモデルの精度がベースラインより劣っています。差分: {accuracy_drop:.4f} "
+        f"(baseline={baseline_metrics['accuracy']:.4f}, current={current_metrics['accuracy']:.4f})"
+    )
 
 
 if __name__ == "__main__":
